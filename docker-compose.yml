@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # Base de Datos
+  db:
+    image: postgres:15-alpine
+    container_name: habits_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: malessan4
+      POSTGRES_PASSWORD: chimango4!
+      POSTGRES_DB: habits_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Adminer (Opcional: Interfaz visual para ver tu DB en el navegador)
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
