@@ -12,6 +12,20 @@ export class HabitsService {
         });
     }
 
+    async findOne(id: number) {
+        return this.prisma.habit.findUnique({
+            where: { id },
+            include: { completions: true },
+        });
+    }
+
+    async update(id: number, data: { title?: string; description?: string }) {
+        return this.prisma.habit.update({
+            where: { id },
+            data,
+        });
+    }
+
     async create(title: string) {
         return this.prisma.habit.create({
             data: { title, userId: 1 },

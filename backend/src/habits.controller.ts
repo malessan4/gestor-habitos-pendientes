@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Delete, Patch } from '@nestjs/common';
 import { HabitsService } from './habits.service';
 
 @Controller('habits')
@@ -8,6 +8,16 @@ export class HabitsController {
     @Get()
     findAll() {
         return this.habitsService.findAll();
+    }
+
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.habitsService.findOne(Number(id));
+    }
+
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() data: { title?: string; description?: string }) {
+        return this.habitsService.update(Number(id), data);
     }
 
     @Post()
