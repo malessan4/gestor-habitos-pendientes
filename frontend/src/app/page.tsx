@@ -9,7 +9,9 @@ export default function Dashboard() {
   const [habits, setHabits] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newHabitTitle, setNewHabitTitle] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
+  /* Fetch habits from backend */
   const fetchHabits = async () => {
     try {
       const res = await axios.get('http://127.0.0.1:3000/habits');
@@ -19,15 +21,22 @@ export default function Dashboard() {
 
   useEffect(() => { fetchHabits(); }, []);
 
+  /* Create new habit */
   const handleCreateHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newHabitTitle.trim()) return;
+
+    setIsLoading(true);
+
     try {
       await axios.post('http://127.0.0.1:3000/habits', { title: newHabitTitle });
       setNewHabitTitle("");
       setIsModalOpen(false);
-      fetchHabits();
+      await fetchHabits();
     } catch (err) { alert("Error al crear"); }
+    finally {
+      setIsLoading(false);
+    }
   };
 
   const totalMinutes = habits.reduce((acc, h: any) =>
@@ -62,7 +71,7 @@ export default function Dashboard() {
           onClick={() => setIsModalOpen(true)}
           className="bg-white text-black px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] cursor-pointer"
         >
-          <Plus size={20} /> Nueva Unidad
+          <Plus size={20} /> Nuevo Habito
         </button>
       </header>
 
@@ -122,14 +131,30 @@ export default function Dashboard() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-900 border border-zinc-800 p-10 rounded-[40px] w-full max-w-md">
-            <h2 className="text-2xl font-black mb-6 uppercase italic">Nueva Unidad</h2>
+            <h2 className="text-2xl font-black mb-6 uppercase italic">Nuevo Habito</h2>
             <form onSubmit={handleCreateHabit}>
               <input
                 autoFocus className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-4 mb-6 outline-none focus:border-indigo-500"
                 value={newHabitTitle} onChange={(e) => setNewHabitTitle(e.target.value)} placeholder="Ej: Programación"
               />
-              <button type="submit" className="w-full bg-indigo-600 p-4 rounded-2xl font-bold hover:bg-indigo-700 transition">Crear Unidad</button>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="w-full mt-4 text-zinc-500 text-sm">Cancelar</button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`w-full p-4 rounded-2xl font-bold transition-all active:scale-95 ${isLoading ? 'bg-zinc-700 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]'
+                  }`}
+              >
+                {isLoading ? "Creando..." : "Crear Unidad"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                disabled={isLoading} // También bloqueamos cancelar mientras se crea
+                className={`w-full mt-4 p-4 rounded-2xl font-bold transition-all active:scale-95 border border-zinc-800 ${isLoading ? 'opacity-50 cursor-not-allowed' : 'bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white'
+                  }`}
+              >
+                Cancelar
+              </button>
             </form>
           </div>
         </div>
