@@ -168,7 +168,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
 
                 <button
                     onClick={handleComplete}
-                    className="w-full bg-white text-black py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 transition-all hover:bg-green-500 hover:text-white active:scale-95 cursor-pointer shadow-xl shadow-white/5"
+                    className="w-full bg-indigo-500 text-black py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 transition-all hover:bg-green-500 hover:text-white active:scale-95 cursor-pointer shadow-xl shadow-white/5"
                 >
                     <CheckCircle size={24} />
                     Registrar Sesión
