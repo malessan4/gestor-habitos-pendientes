@@ -5,7 +5,6 @@ import { PrismaService } from './prisma.service';
 export class HabitsService {
     constructor(private prisma: PrismaService) { }
 
-    // Obtener todos los hábitos del usuario 1 (el que creamos con el seed)
     async findAll() {
         return this.prisma.habit.findMany({
             where: { userId: 1 },
@@ -13,22 +12,29 @@ export class HabitsService {
         });
     }
 
-    // Registrar una completitud para hoy
-    async complete(habitId: number) {
-        return this.prisma.completionLog.create({
-            data: {
-                habitId: habitId,
-                date: new Date(),
-            },
+    async create(title: string) {
+        return this.prisma.habit.create({
+            data: { title, userId: 1 },
         });
     }
 
-    async create(title: string) {
-        return this.prisma.habit.create({
-            data: {
-                title,
-                userId: 1,
-            },
+    async complete(habitId: number, minutes: number) {
+        return this.prisma.completionLog.create({
+            data: { habitId, minutes },
         });
+    }
+
+    async removeHabit(id: number) {
+        return this.prisma.habit.delete({ where: { id } });
+    }
+
+    async undoLastCompletion(habitId: number) {
+        const last = await this.prisma.completionLog.findFirst({
+            where: { habitId },
+            orderBy: { date: 'desc' },
+        });
+        if (last) {
+            return this.prisma.completionLog.delete({ where: { id: last.id } });
+        }
     }
 }
