@@ -2,7 +2,7 @@
 import 'react-calendar-heatmap/dist/styles.css';
 import { useEffect, useState, use } from 'react';
 import axios from 'axios';
-import { Flame, CheckCircle, ArrowLeft, Undo2, Clock, Calendar as CalIcon, Edit3, Save, Trash2, X } from 'lucide-react';
+import { Flame, CheckCircle, ArrowLeft, Undo2, Clock, Calendar as CalIcon, Edit3, Save, Trash2, X, Award, Medal, Trophy } from 'lucide-react';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -52,7 +52,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
         try {
             await axios.post(`http://127.0.0.1:3000/habits/${id}/complete`, { minutes: Number(mins) });
             fetchHabit();
-        } catch (err) { alert("Error al registrar"); }
+        } catch (err) { console.error(err); }
     };
 
     const handleUndo = async () => {
@@ -68,6 +68,14 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
     if (!habit) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500 font-bold uppercase tracking-widest">Cargando Unidad...</div>;
 
     const totalMins = habit.completions.reduce((acc: number, curr: any) => acc + (curr.minutes || 0), 0);
+    const totalHours = totalMins / 60;
+
+    // Lógica de Logros
+    const achievements = [
+        { name: "Iniciador", icon: <Award size={24} />, req: 10, current: totalHours, color: "text-amber-600", label: "10 Horas" },
+        { name: "Constancia", icon: <Medal size={24} />, req: 50, current: totalHours, color: "text-zinc-400", label: "50 Horas" },
+        { name: "Maestría", icon: <Trophy size={24} />, req: 100, current: totalHours, color: "text-yellow-400", label: "100 Horas" },
+    ];
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -128,17 +136,33 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                     </div>
                 </div>
 
-                <div className="flex gap-4 mb-8 border-t border-zinc-800 pt-6">
-                    <div className="flex items-center gap-2 text-orange-500 bg-orange-500/5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase border border-orange-500/10">
-                        <Flame size={14} fill="currentColor" /> {habit.completions.length} Días
+                <div className="flex flex-wrap items-center justify-between gap-6 mb-8 border-t border-zinc-800 pt-6">
+                    <div className="flex gap-4">
+                        <div className="flex items-center gap-2 text-orange-500 bg-orange-500/5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase border border-orange-500/10">
+                            <Flame size={14} fill="currentColor" /> {habit.completions.length} Días
+                        </div>
+                        <div className="flex items-center gap-2 text-indigo-400 bg-indigo-500/5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase border border-indigo-500/10">
+                            <Clock size={14} /> {Math.floor(totalHours)}h {totalMins % 60}m
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-indigo-400 bg-indigo-500/5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase border border-indigo-500/10">
-                        <Clock size={14} /> {Math.floor(totalMins / 60)}h {totalMins % 60}m
+
+                    {/* VITRINA DE MEDALLAS */}
+                    <div className="flex gap-3">
+                        {achievements.map((ach) => (
+                            <div
+                                key={ach.name}
+                                className={`p-2 rounded-xl border ${ach.current >= ach.req ? `${ach.color} border-current bg-white/5` : 'text-zinc-800 border-zinc-800 bg-transparent'} transition-all duration-1000`}
+                                title={ach.current >= ach.req ? `¡Logro alcanzado: ${ach.name}!` : `Faltan ${(ach.req - ach.current).toFixed(1)}h para esta medalla`}
+                            >
+                                {ach.icon}
+                            </div>
+                        ))}
                     </div>
                 </div>
 
+                {/* HEATMAP */}
                 <div className="bg-black/40 p-8 rounded-[24px] border border-zinc-800/50 flex gap-6 mb-8 overflow-hidden">
-                    <div className="flex flex-col justify-between text-[10px] text-zinc-600 font-black uppercase py-2 h-[110px]">
+                    <div className="flex flex-col justify-between text-[10px] text-zinc-600 font-black uppercase py-2 h-[100px]">
                         <span>Lun</span><span>Mie</span><span>Vie</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -168,7 +192,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
 
                 <button
                     onClick={handleComplete}
-                    className="w-full bg-indigo-500 text-black py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 transition-all hover:bg-green-500 hover:text-white active:scale-95 cursor-pointer shadow-xl shadow-white/5"
+                    className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 transition-all hover:bg-green-500 active:scale-95 cursor-pointer shadow-xl shadow-indigo-500/10"
                 >
                     <CheckCircle size={24} />
                     Registrar Sesión
