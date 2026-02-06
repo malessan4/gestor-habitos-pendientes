@@ -17,6 +17,7 @@ model User {
 model Habit {
   id          Int             @id @default(autoincrement())
   title       String
+  description String?         @default("")
   createdAt   DateTime        @default(now())
   userId      Int
   user        User            @relation(fields: [userId], references: [id])
