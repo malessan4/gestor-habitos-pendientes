@@ -18,7 +18,16 @@ export class HabitsService {
         return this.prisma.completionLog.create({
             data: {
                 habitId: habitId,
-                date: new Date(), // Registra el momento exacto
+                date: new Date(),
+            },
+        });
+    }
+
+    async create(title: string) {
+        return this.prisma.habit.create({
+            data: {
+                title,
+                userId: 1,
             },
         });
     }
