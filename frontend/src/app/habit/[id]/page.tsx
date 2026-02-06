@@ -70,11 +70,10 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
     const totalMins = habit.completions.reduce((acc: number, curr: any) => acc + (curr.minutes || 0), 0);
     const totalHours = totalMins / 60;
 
-    // Lógica de Logros
     const achievements = [
-        { name: "Iniciador", icon: <Award size={24} />, req: 10, current: totalHours, color: "text-amber-600", label: "10 Horas" },
-        { name: "Constancia", icon: <Medal size={24} />, req: 50, current: totalHours, color: "text-zinc-400", label: "50 Horas" },
-        { name: "Maestría", icon: <Trophy size={24} />, req: 100, current: totalHours, color: "text-yellow-400", label: "100 Horas" },
+        { name: "Iniciador", icon: <Award size={24} />, req: 10, current: totalHours, color: "text-amber-600" },
+        { name: "Constancia", icon: <Medal size={24} />, req: 50, current: totalHours, color: "text-zinc-400" },
+        { name: "Maestría", icon: <Trophy size={24} />, req: 100, current: totalHours, color: "text-yellow-400" },
     ];
 
     const formatDate = (dateStr: string) => {
@@ -146,12 +145,11 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                         </div>
                     </div>
 
-                    {/* VITRINA DE MEDALLAS */}
                     <div className="flex gap-3">
                         {achievements.map((ach) => (
                             <div
                                 key={ach.name}
-                                className={`p-2 rounded-xl border ${ach.current >= ach.req ? `${ach.color} border-current bg-white/5` : 'text-zinc-800 border-zinc-800 bg-transparent'} transition-all duration-1000`}
+                                className={`p-2 rounded-xl border ${ach.current >= ach.req ? `${ach.color} border-current bg-white/5` : 'text-zinc-800 border-zinc-800 bg-transparent'} transition-all`}
                                 title={ach.current >= ach.req ? `¡Logro alcanzado: ${ach.name}!` : `Faltan ${(ach.req - ach.current).toFixed(1)}h para esta medalla`}
                             >
                                 {ach.icon}
@@ -160,33 +158,46 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                     </div>
                 </div>
 
-                {/* HEATMAP */}
-                <div className="bg-black/40 p-8 rounded-[24px] border border-zinc-800/50 flex gap-6 mb-8 overflow-hidden">
-                    <div className="flex flex-col justify-between text-[10px] text-zinc-600 font-black uppercase py-2 h-[100px]">
-                        <span>Lun</span><span>Mie</span><span>Vie</span>
+                {/* HEATMAP SECCIÓN */}
+                <div className="bg-black/40 p-8 rounded-[24px] border border-zinc-800/50 mb-8 overflow-hidden">
+                    <div className="flex gap-6 mb-6">
+                        <div className="flex flex-col justify-between text-[10px] text-zinc-600 font-black uppercase py-2 h-[100px]">
+                            <span>Lun</span><span>Mie</span><span>Vie</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <CalendarHeatmap
+                                startDate={new Date('2026-01-01')}
+                                endDate={new Date('2026-12-31')}
+                                values={habit.completions.map((c: any) => ({
+                                    date: new Date(c.date).toISOString().split('T')[0],
+                                    count: c.minutes
+                                }))}
+                                classForValue={(value: any) => {
+                                    if (!value || value.count === 0) return 'color-empty';
+                                    if (value.count <= 30) return 'color-scale-1';
+                                    if (value.count <= 60) return 'color-scale-2';
+                                    if (value.count <= 120) return 'color-scale-3';
+                                    return 'color-scale-4';
+                                }}
+                                tooltipDataAttrs={(value: any) => {
+                                    if (!value || !value.date) return { 'data-tooltip-content': 'Sin actividad' };
+                                    return { 'data-tooltip-content': `${formatDate(value.date)}: ${value.count} min registrados` };
+                                }}
+                            />
+                        </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <CalendarHeatmap
-                            startDate={new Date('2026-01-01')}
-                            endDate={new Date('2026-12-31')}
-                            values={habit.completions.map((c: any) => ({
-                                date: new Date(c.date).toISOString().split('T')[0],
-                                count: c.minutes
-                            }))}
-                            classForValue={(value: any) => {
-                                if (!value || value.count === 0) return 'color-empty';
-                                if (value.count <= 30) return 'color-scale-1';
-                                if (value.count <= 60) return 'color-scale-2';
-                                if (value.count <= 120) return 'color-scale-3';
-                                return 'color-scale-4';
-                            }}
-                            tooltipDataAttrs={(value: any) => {
-                                if (!value || !value.date) return { 'data-tooltip-content': 'Sin actividad' };
-                                return {
-                                    'data-tooltip-content': `${formatDate(value.date)}: ${value.count} min registrados`,
-                                };
-                            }}
-                        />
+
+                    {/* LEYENDA DE COLORES E INTENSIDAD */}
+                    <div className="flex items-center justify-end gap-3 border-t border-zinc-800/50 pt-4">
+                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mr-2">Intensidad:</span>
+                        <div className="flex items-center gap-1.5 group">
+                            <div className="w-3 h-3 rounded-sm bg-[#18181b] border border-white/5" title="0 min"></div>
+                            <div className="w-3 h-3 rounded-sm bg-[#312e81]" title="1 - 30 min"></div>
+                            <div className="w-3 h-3 rounded-sm bg-[#4338ca]" title="31 - 60 min"></div>
+                            <div className="w-3 h-3 rounded-sm bg-[#6366f1]" title="61 - 120 min"></div>
+                            <div className="w-3 h-3 rounded-sm bg-[#818cf8]" title="+120 min"></div>
+                        </div>
+                        <span className="text-[9px] text-zinc-600 font-medium ml-2">Pasa el mouse para ver rangos</span>
                     </div>
                 </div>
 
@@ -200,9 +211,9 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
             </div>
 
             <ReactTooltip
-                anchorSelect=".react-calendar-heatmap rect"
+                anchorSelect=".react-calendar-heatmap rect, .group [title]"
                 noArrow
-                style={{ backgroundColor: "#6366f1", color: "#fff", borderRadius: "12px", fontWeight: "900", fontSize: "12px", padding: "8px 12px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}
+                style={{ backgroundColor: "#6366f1", color: "#fff", borderRadius: "8px", fontWeight: "bold", fontSize: "11px" }}
             />
 
             <style jsx global>{`
@@ -211,7 +222,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                 .react-calendar-heatmap .color-scale-2 { fill: #4338ca; }
                 .react-calendar-heatmap .color-scale-3 { fill: #6366f1; }
                 .react-calendar-heatmap .color-scale-4 { fill: #818cf8; }
-                .react-calendar-heatmap rect { rx: 3px; cursor: pointer; transition: all 0.2s; }
+                .react-calendar-heatmap rect { rx: 2px; cursor: pointer; transition: all 0.2s; }
                 .react-calendar-heatmap rect:hover { filter: brightness(1.3); stroke: #fff; stroke-width: 1px; }
             `}</style>
         </div>
