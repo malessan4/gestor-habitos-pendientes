@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "To-Do-App",
+  title: "Habit Production",
   description: "Aplicacion para llevar una rutina de hábitos y tareas diarias",
 };
 

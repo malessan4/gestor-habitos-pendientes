@@ -43,7 +43,7 @@ export default function Home() {
       <header className="flex justify-between items-center mb-12 border-b border-zinc-800 pb-8">
         <div className="flex items-center gap-3">
           <LayoutDashboard className="text-indigo-500" size={28} />
-          <h1 className="text-2xl font-bold tracking-tight">FocusHabit</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Habit Production</h1>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
