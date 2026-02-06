@@ -24,3 +24,28 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.react-calendar-heatmap .color-empty {
+  fill: #f3f4f6;
+}
+
+.react-calendar-heatmap .color-scale-1 {
+  fill: #dcfce7;
+}
+
+.react-calendar-heatmap .color-scale-2 {
+  fill: #86efac;
+}
+
+.react-calendar-heatmap .color-scale-3 {
+  fill: #22c55e;
+}
+
+.react-calendar-heatmap .color-scale-4 {
+  fill: #166534;
+}
+
+.react-calendar-heatmap rect {
+  rx: 2;
+  ry: 2;
+}
