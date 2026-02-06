@@ -19,6 +19,7 @@ model Habit {
   title       String
   description String?         @default("")
   createdAt   DateTime        @default(now())
+  frequency   Int[]           @default([0,1,2,3,4,5,6]) // [0..6] donde 0 es Domingo
   userId      Int
   user        User            @relation(fields: [userId], references: [id])
   completions CompletionLog[]
