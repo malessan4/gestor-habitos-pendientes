@@ -1,8 +1,17 @@
+// backend/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique
-  habits   Habit[]
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  habits Habit[]
 }
 
 model Habit {
@@ -15,17 +24,8 @@ model Habit {
 }
 
 model CompletionLog {
-  id        Int      @id @default(autoincrement())
-  date      DateTime @default(now()) // El día que se completó
-  habitId   Int
-  habit     Habit    @relation(fields: [habitId], references: [id])
-}
-
-generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
-}
-
-datasource db {
-  provider = "postgresql"
+  id      Int      @id @default(autoincrement())
+  date    DateTime @default(now())
+  habitId Int
+  habit   Habit    @relation(fields: [habitId], references: [id])
 }

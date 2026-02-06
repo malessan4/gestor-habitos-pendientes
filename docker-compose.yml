@@ -8,10 +8,10 @@ services:
     restart: always
     environment:
       POSTGRES_USER: malessan4
-      POSTGRES_PASSWORD: chimango4!
+      POSTGRES_PASSWORD: chimango4
       POSTGRES_DB: habits_db
     ports:
-      - "5432:5432"
+      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
