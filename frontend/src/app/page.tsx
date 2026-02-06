@@ -1,11 +1,11 @@
 "use client";
-import 'react-calendar-heatmap/dist/styles.css';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Flame, CheckCircle, Plus, LayoutDashboard, X, Trash2, Undo2, Clock } from 'lucide-react';
-import CalendarHeatmap from 'react-calendar-heatmap';
+import { Flame, Plus, LayoutDashboard, Clock, PieChart as PieIcon, ArrowRight, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function Home() {
+export default function Dashboard() {
   const [habits, setHabits] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newHabitTitle, setNewHabitTitle] = useState("");
@@ -14,8 +14,14 @@ export default function Home() {
     try {
       const res = await axios.get('http://127.0.0.1:3000/habits');
       setHabits(res.data);
-    } catch (err) { console.error("Error al cargar hábitos", err); }
+    } catch (err) {
+      console.error("Error al obtener hábitos:", err);
+    }
   };
+
+  useEffect(() => {
+    fetchHabits();
+  }, []);
 
   const handleCreateHabit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,153 +31,141 @@ export default function Home() {
       setNewHabitTitle("");
       setIsModalOpen(false);
       fetchHabits();
-    } catch (err) { alert("Error al crear hábito"); }
+    } catch (err) {
+      alert("Error al crear el hábito");
+    }
   };
 
-  const handleComplete = async (habitId: number) => {
-    const mins = prompt("¿Cuántos minutos le dedicaste hoy?");
-    if (mins === null) return;
+  // Lógica Dinámica
+  const totalMinutes = habits.reduce((acc, h: any) =>
+    acc + h.completions.reduce((sum: number, c: any) => sum + (c.minutes || 0), 0), 0
+  );
 
-    try {
-      await axios.post(`http://127.0.0.1:3000/habits/${habitId}/complete`, {
-        minutes: Number(mins) || 0
-      });
-      fetchHabits();
-    } catch (err) { console.error("Error al completar", err); }
-  };
+  const topHabit = habits.length > 0
+    ? [...habits].sort((a: any, b: any) => {
+      const sumA = a.completions.reduce((s: number, c: any) => s + (c.minutes || 0), 0);
+      const sumB = b.completions.reduce((s: number, c: any) => s + (c.minutes || 0), 0);
+      return sumB - sumA;
+    })[0]
+    : null;
 
-  const handleDeleteHabit = async (habitId: number) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar este hábito y todo su progreso?")) return;
-    try {
-      await axios.delete(`http://127.0.0.1:3000/habits/${habitId}`);
-      fetchHabits();
-    } catch (err) { console.error("Error al eliminar", err); }
-  };
-
-  const handleUndoLast = async (habitId: number) => {
-    try {
-      await axios.delete(`http://127.0.0.1:3000/habits/${habitId}/undo`);
-      fetchHabits();
-    } catch (err) { console.error("Error al deshacer", err); }
-  };
-
-  const getTotalTime = (completions: any[]) => {
-    const totalMins = completions.reduce((acc, curr) => acc + (curr.minutes || 0), 0);
-    const hrs = Math.floor(totalMins / 60);
-    const mins = totalMins % 60;
-    return `${hrs}h ${mins}m`;
-  };
-
-  useEffect(() => { fetchHabits(); }, []);
+  const chartData = habits.map((h: any) => ({
+    name: h.title,
+    minutos: h.completions.reduce((sum: number, c: any) => sum + (c.minutes || 0), 0)
+  })).filter(d => d.minutos > 0);
 
   return (
-    <div className="min-h-screen p-6 md:p-12 max-w-6xl mx-auto bg-black text-white">
-
-      {/* HEADER */}
-      <header className="flex justify-between items-center mb-16 border-b border-zinc-800 pb-10">
-        <div className="flex items-center gap-4">
-          <div className="bg-indigo-600 p-2.5 rounded-2xl">
-            <LayoutDashboard className="text-white" size={32} />
-          </div>
-          <h1 className="text-3xl font-black tracking-tighter uppercase italic">
+    <div className="min-h-screen p-6 md:p-12 max-w-6xl mx-auto bg-black text-white font-sans">
+      <header className="flex justify-between items-center mb-12 border-b border-zinc-800 pb-8">
+        <div className="flex items-center gap-3">
+          <LayoutDashboard className="text-indigo-500" size={32} />
+          <h1 className="text-2xl font-black italic uppercase tracking-tighter">
             Habit <span className="text-indigo-500">Production</span>
           </h1>
         </div>
+
+        {/* BOTÓN + NUEVO CON HOVER MEJORADO */}
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-white text-black px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-zinc-200 transition font-bold cursor-pointer shadow-lg shadow-white/5"
+          className="bg-white text-black px-6 py-3 rounded-2xl font-bold flex items-center gap-2 
+                     transition-all duration-300 hover:scale-105 hover:bg-zinc-200 
+                     hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] active:scale-95 cursor-pointer"
         >
-          <Plus size={20} /> Nuevo Hábito
+          <Plus size={20} strokeWidth={3} /> Nueva Unidad
         </button>
       </header>
 
-      {/* MODAL PARA NUEVO HÁBITO */}
+      {/* MÉTRICAS SUPERIORES */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="bg-zinc-900/50 p-8 rounded-[32px] border border-zinc-800">
+          <Clock className="text-indigo-400 mb-4" />
+          <p className="text-zinc-500 text-xs font-black uppercase tracking-widest">Producción Total</p>
+          <h3 className="text-3xl font-black">{Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m</h3>
+        </div>
+
+        <div className="bg-zinc-900/50 p-8 rounded-[32px] border border-zinc-800">
+          <TrendingUp className="text-green-500 mb-4" />
+          <p className="text-zinc-500 text-xs font-black uppercase tracking-widest">Top Producción</p>
+          <h3 className="text-2xl font-black truncate">{topHabit ? topHabit.title : "Sin datos"}</h3>
+        </div>
+
+        <div className="bg-zinc-900/50 p-8 rounded-[32px] border border-zinc-800">
+          <Flame className="text-orange-500 mb-4" />
+          <p className="text-zinc-500 text-xs font-black uppercase tracking-widest">Unidades</p>
+          <h3 className="text-3xl font-black">{habits.length}</h3>
+        </div>
+      </div>
+
+      {/* GRÁFICO DE PROGRESO */}
+      <div className="bg-zinc-900/30 p-8 rounded-[40px] border border-zinc-800 mb-12">
+        <h3 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-8 flex items-center gap-2">
+          <PieIcon size={16} /> Rendimiento Comparativo (minutos)
+        </h3>
+        <div className="h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+              <XAxis dataKey="name" stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#71717a" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip
+                cursor={{ fill: '#27272a', opacity: 0.4 }}
+                contentStyle={{ backgroundColor: '#09090b', border: '1px solid #27272a', borderRadius: '15px' }}
+              />
+              <Bar dataKey="minutos" fill="#6366f1" radius={[10, 10, 0, 0]} barSize={40} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* GRID DE UNIDADES */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {habits.map((habit: any) => (
+          <Link href={`/habit/${habit.id}`} key={habit.id}>
+            <div className="group bg-zinc-900/40 p-8 rounded-[40px] border border-zinc-800 hover:border-indigo-500 transition-all cursor-pointer h-64 flex flex-col justify-between">
+              <div>
+                <h2 className="text-2xl font-bold group-hover:text-indigo-400 transition-colors">{habit.title}</h2>
+                <div className="flex items-center gap-2 text-orange-500 text-sm font-bold mt-2">
+                  <Flame size={14} fill="currentColor" /> {habit.completions.length} Días activos
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-zinc-500 group-hover:text-white transition-colors">
+                <span className="text-[10px] font-black uppercase tracking-widest">Analizar Producción</span>
+                <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* MODAL DE NUEVA UNIDAD */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-900 border border-zinc-800 p-10 rounded-[40px] w-full max-w-md shadow-2xl">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold tracking-tight">Nuevo reto</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-zinc-500 hover:text-white transition">
-                <X size={28} />
-              </button>
-            </div>
+            <h2 className="text-2xl font-black mb-6 uppercase italic">Nueva Unidad de <span className="text-indigo-500">Producción</span></h2>
             <form onSubmit={handleCreateHabit}>
               <input
                 autoFocus
-                type="text"
-                placeholder="¿Qué vamos a producir hoy?"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-5 mb-8 text-white text-lg outline-none focus:border-indigo-500 transition"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-4 mb-6 outline-none focus:border-indigo-500 text-white"
                 value={newHabitTitle}
                 onChange={(e) => setNewHabitTitle(e.target.value)}
+                placeholder="Ej: Programación, Gym, Lectura..."
               />
-              <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 rounded-2xl text-lg transition shadow-xl shadow-indigo-900/20">
-                Empezar producción
-              </button>
+              <div className="flex flex-col gap-3">
+                <button type="submit" className="w-full bg-indigo-600 p-4 rounded-2xl font-bold hover:bg-indigo-700 transition active:scale-95">
+                  Crear Unidad
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="w-full p-4 text-zinc-500 text-sm font-bold hover:text-white transition"
+                >
+                  Cancelar
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* LISTA DE HÁBITOS - DISEÑO XL */}
-      <div className="grid gap-10">
-        {habits.map((habit: any) => (
-          <div key={habit.id} className="bg-zinc-900/30 p-10 rounded-[48px] border border-zinc-800 flex flex-col gap-10 hover:bg-zinc-900/50 transition-all duration-500">
-
-            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-              <div className="space-y-4">
-                <h2 className="text-4xl font-extrabold tracking-tight">{habit.title}</h2>
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2 text-orange-500 bg-orange-500/10 px-5 py-2 rounded-full text-sm font-black uppercase tracking-widest border border-orange-500/20">
-                    <Flame size={18} fill="currentColor" /> {habit.completions?.length || 0} Días logrados
-                  </div>
-                  <div className="flex items-center gap-2 text-indigo-400 bg-indigo-500/10 px-5 py-2 rounded-full text-sm font-black uppercase tracking-widest border border-indigo-500/20">
-                    <Clock size={18} /> {getTotalTime(habit.completions)} Producidos
-                  </div>
-                </div>
-              </div>
-
-              {/* Acciones de gestión */}
-              <div className="flex gap-3 bg-black/20 p-2 rounded-3xl border border-zinc-800">
-                <button
-                  onClick={() => handleUndoLast(habit.id)}
-                  className="p-4 text-zinc-500 hover:text-yellow-500 hover:bg-yellow-500/5 rounded-2xl transition cursor-pointer"
-                  title="Deshacer último registro"
-                >
-                  <Undo2 size={24} />
-                </button>
-                <button
-                  onClick={() => handleDeleteHabit(habit.id)}
-                  className="p-4 text-zinc-500 hover:text-red-500 hover:bg-red-500/5 rounded-2xl transition cursor-pointer"
-                  title="Eliminar hábito"
-                >
-                  <Trash2 size={24} />
-                </button>
-              </div>
-            </div>
-
-            {/* HEATMAP XL */}
-            <div className="w-full bg-black/40 p-8 rounded-[32px] border border-zinc-800/50 shadow-inner">
-              <CalendarHeatmap
-                startDate={new Date('2026-01-01')}
-                endDate={new Date('2026-12-31')}
-                values={habit.completions.map((c: any) => ({
-                  date: new Date(c.date).toISOString().split('T')[0],
-                  count: 1
-                }))}
-                classForValue={(value: any) => value ? 'color-scale-4' : 'color-empty'}
-              />
-            </div>
-
-            <button
-              onClick={() => handleComplete(habit.id)}
-              className="w-full bg-indigo-600/10 hover:bg-green-500 group border border-indigo-500/20 hover:border-green-400 py-8 rounded-[32px] transition-all duration-300 flex items-center justify-center gap-6 cursor-pointer"
-            >
-              <CheckCircle size={32} className="text-indigo-500 group-hover:text-white transition-colors" />
-              <span className="text-2xl font-bold text-indigo-200 group-hover:text-white transition-colors tracking-tight">Registrar Producción Diaria</span>
-            </button>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
