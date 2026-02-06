@@ -16,9 +16,11 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
     const [habit, setHabit] = useState<any>(null);
     const [isEditingDesc, setIsEditingDesc] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false); // Nuevo estado para el Pop-up
 
     const [desc, setDesc] = useState("");
     const [title, setTitle] = useState("");
+    const [sessionMins, setSessionMins] = useState(""); // Nuevo estado para los minutos
 
     const fetchHabit = async () => {
         try {
@@ -46,11 +48,16 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
         } catch (err) { alert("Error al eliminar"); }
     };
 
-    const handleComplete = async () => {
-        const mins = prompt("¿Cuántos minutos duró esta sesión?");
-        if (!mins) return;
+    // Función para procesar el envío del modal
+    const handleRegisterSession = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        const mins = Number(sessionMins);
+        if (!mins || mins <= 0) return;
+
         try {
-            await axios.post(`http://127.0.0.1:3000/habits/${id}/complete`, { minutes: Number(mins) });
+            await axios.post(`http://127.0.0.1:3000/habits/${id}/complete`, { minutes: mins });
+            setSessionMins("");
+            setIsModalOpen(false);
             fetchHabit();
         } catch (err) { console.error(err); }
     };
@@ -187,7 +194,6 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                         </div>
                     </div>
 
-                    {/* LEYENDA DE COLORES E INTENSIDAD */}
                     <div className="flex items-center justify-end gap-3 border-t border-zinc-800/50 pt-4">
                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mr-2">Intensidad:</span>
                         <div className="flex items-center gap-1.5 group">
@@ -197,18 +203,63 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                             <div className="w-3 h-3 rounded-sm bg-[#6366f1]" title="61 - 120 min"></div>
                             <div className="w-3 h-3 rounded-sm bg-[#818cf8]" title="+120 min"></div>
                         </div>
-                        <span className="text-[9px] text-zinc-600 font-medium ml-2">Pasa el mouse para ver rangos</span>
                     </div>
                 </div>
 
                 <button
-                    onClick={handleComplete}
+                    onClick={() => setIsModalOpen(true)}
                     className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 transition-all hover:bg-green-500 active:scale-95 cursor-pointer shadow-xl shadow-indigo-500/10"
                 >
                     <CheckCircle size={24} />
                     Registrar Sesión
                 </button>
             </div>
+
+            {/* MODAL PERSONALIZADO PARA CARGAR MINUTOS */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+                    <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[40px] w-full max-w-sm shadow-2xl relative overflow-hidden">
+                        {/* Brillo de fondo */}
+                        <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/20 blur-[80px]"></div>
+
+                        <div className="relative z-10">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-black italic uppercase">Cargar <span className="text-indigo-500">Sesión</span></h2>
+                                <button onClick={() => setIsModalOpen(false)} className="text-zinc-500 hover:text-white transition">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleRegisterSession}>
+                                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-3">Minutos de Producción</p>
+                                <input
+                                    autoFocus
+                                    type="number"
+                                    placeholder="Ej: 60"
+                                    className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-5 mb-6 outline-none focus:border-indigo-500 text-2xl font-black text-center"
+                                    value={sessionMins}
+                                    onChange={(e) => setSessionMins(e.target.value)}
+                                />
+                                <div className="flex flex-col gap-3">
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase italic hover:bg-indigo-500 hover:text-white transition-all active:scale-95"
+                                    >
+                                        Guardar Entrenamiento
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="w-full py-3 text-red-500/60 text-[10px] font-black uppercase tracking-widest hover:text-red-500 hover:bg-red-500/5 rounded-xl transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <ReactTooltip
                 anchorSelect=".react-calendar-heatmap rect, .group [title]"
