@@ -15,12 +15,13 @@ export class HabitsController {
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.habitsService.findOne(Number(id));
+    findOne(@Param('id') id: string, @Request() req: any) {
+        // Agregamos req.user.sub para pasar el ID del usuario logueado
+        return this.habitsService.findOne(Number(id), req.user.sub);
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() data: { title?: string; description?: string }) {
+    update(@Param('id') id: string, @Body() data: any) {
         return this.habitsService.update(Number(id), data);
     }
 

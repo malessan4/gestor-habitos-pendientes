@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '@/api/axios';
 import {
   Flame,
   Plus,
@@ -23,10 +23,13 @@ export default function Dashboard() {
 
   const fetchHabits = async () => {
     try {
-      const res = await axios.get('http://127.0.0.1:3000/habits');
+      // Ya no necesitás 'http://127.0.0.1:3000/habits'
+      // porque 'api' ya tiene la baseURL y el TOKEN
+      const res = await api.get('/habits');
       setHabits(res.data);
     } catch (err) {
       console.error("Error fetching habits:", err);
+      // Si da error 401, el interceptor nos mandará al login solito
     }
   };
 
