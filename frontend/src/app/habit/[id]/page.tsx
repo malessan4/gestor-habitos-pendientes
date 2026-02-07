@@ -1,8 +1,12 @@
 "use client";
 import 'react-calendar-heatmap/dist/styles.css';
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import api from '@/api/axios';
-import { Flame, CheckCircle, Undo2, Clock, Calendar as CalIcon, Edit3, Save, Trash2, X, Award, Medal, Trophy, Settings2, LayoutDashboard } from 'lucide-react';
+import {
+    Flame, CheckCircle, Undo2, Clock, Calendar as CalIcon,
+    Edit3, Save, Trash2, X, Award, Medal, Trophy,
+    Settings2, LayoutDashboard, Play, Pause, Square
+} from 'lucide-react';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -22,6 +26,12 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
     const [title, setTitle] = useState("");
     const [sessionMins, setSessionMins] = useState("");
 
+    // --- ESTADOS DEL CRONÓMETRO ---
+    const [isActive, setIsActive] = useState(false);
+    const [isPaused, setIsPaused] = useState(true);
+    const [seconds, setSeconds] = useState(0);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
     const dayNames = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
     const fetchHabit = async () => {
@@ -33,6 +43,45 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
         } catch (err) {
             console.error(err);
         }
+    };
+
+    // --- LÓGICA DEL CRONÓMETRO ---
+    useEffect(() => {
+        if (isActive && !isPaused) {
+            timerRef.current = setInterval(() => {
+                setSeconds((prev) => prev + 1);
+            }, 1000);
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }, [isActive, isPaused]);
+
+    const handlePlayPause = () => {
+        setIsActive(true);
+        setIsPaused(!isPaused);
+    };
+
+    const handleStop = async () => {
+        const minsToRegister = Math.max(1, Math.round(seconds / 60));
+        if (confirm(`¿Finalizar sesión y registrar ${minsToRegister} minutos de Stamina?`)) {
+            try {
+                await api.post(`/habits/${id}/complete`, { minutes: minsToRegister });
+                setIsActive(false);
+                setIsPaused(true);
+                setSeconds(0);
+                fetchHabit();
+            } catch (err) {
+                alert("Error al registrar sesión automática");
+            }
+        }
+    };
+
+    const formatTimer = (totalSeconds: number) => {
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
     const calculateFlexibleStreak = (completions: any[], frequency: number[]) => {
@@ -123,7 +172,6 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
 
     return (
         <div className="min-h-screen p-6 md:p-12 max-w-4xl mx-auto bg-black text-white font-sans">
-            {/* HEADER UNIFICADO */}
             <div className="flex justify-between items-center mb-12 border-b border-zinc-800 pb-8">
                 <Link href="/" className="flex items-center gap-2 text-zinc-500 hover:text-white transition group text-[10px] font-black uppercase tracking-[0.2em] bg-zinc-900/50 px-6 py-3 rounded-2xl border border-zinc-800">
                     <LayoutDashboard size={16} /> Dashboard
@@ -202,6 +250,45 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                     </div>
                 </div>
 
+                {/* --- SECCIÓN CRONÓMETRO --- */}
+                <div className="mb-8 p-8 bg-black/40 rounded-[24px] border border-zinc-800/50 flex flex-col items-center">
+                    <div className={`text-6xl font-mono font-black mb-8 tracking-tighter transition-colors ${!isPaused ? 'text-indigo-500 animate-pulse' : 'text-zinc-600'}`}>
+                        {formatTimer(seconds)}
+                    </div>
+
+                    <div className="flex gap-4 w-full max-w-sm">
+                        <button
+                            onClick={handlePlayPause}
+                            className={`flex-1 py-5 rounded-2xl font-black uppercase italic flex items-center justify-center gap-3 transition-all ${isPaused
+                                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                    : 'bg-zinc-800 text-indigo-400 border border-indigo-500/30 hover:bg-zinc-700 hover:text-indigo-300'
+                                }`}
+                        >
+                            {isPaused ? <><Play size={24} fill="currentColor" /> Iniciar</> : <><Pause size={24} fill="currentColor" /> Pausa</>}
+                        </button>
+
+                        <button
+                            onClick={handleStop}
+                            disabled={!isActive}
+                            className={`flex-1 py-5 rounded-2xl font-black uppercase italic flex items-center justify-center gap-3 transition-all ${isActive
+                                    ? 'bg-red-600/10 text-red-500 border border-red-500/20 hover:bg-red-600 hover:text-white shadow-lg shadow-red-500/10'
+                                    : 'bg-zinc-900 text-zinc-800 border border-zinc-800 cursor-not-allowed opacity-50'
+                                }`}
+                        >
+                            <Square size={20} fill="currentColor" /> Detener
+                        </button>
+                    </div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-700 mt-6 italic text-center">Capture Automated Stamina Production</p>
+                </div>
+
+                {/* BOTÓN REGISTRAR SESIÓN (CORREGIDO ÍNDIGO/VERDE) */}
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 transition-all hover:bg-green-500 hover:text-white active:scale-95 cursor-pointer shadow-xl shadow-indigo-500/10 mb-8"
+                >
+                    <CheckCircle size={24} /> Registrar Sesión Manual
+                </button>
+
                 {/* TROFEOS Y STATS */}
                 <div className="flex flex-wrap items-center justify-between gap-6 mb-8 border-t border-zinc-800 pt-6">
                     <div className="flex gap-4">
@@ -255,21 +342,14 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                         </div>
                     </div>
                 </div>
-
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 transition-all hover:bg-green-500 active:scale-95 cursor-pointer shadow-xl shadow-indigo-500/10"
-                >
-                    <CheckCircle size={24} /> Registrar Sesión
-                </button>
             </div>
 
             {/* MODAL */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-                    <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[40px] w-full max-w-sm shadow-2xl relative overflow-hidden">
+                    <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[40px] w-full max-w-sm shadow-2xl relative overflow-hidden text-center">
                         <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/20 blur-[80px]"></div>
-                        <div className="relative z-10 text-center">
+                        <div className="relative z-10">
                             <h2 className="text-xl font-black italic uppercase mb-6">Cargar <span className="text-indigo-500">Sesión</span></h2>
                             <form onSubmit={handleRegisterSession}>
                                 <input
@@ -277,8 +357,10 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                                     className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-5 mb-6 outline-none focus:border-indigo-500 text-3xl font-black text-center text-white"
                                     value={sessionMins} onChange={(e) => setSessionMins(e.target.value)}
                                 />
-                                <button type="submit" className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase italic hover:bg-indigo-500 hover:text-white transition-all">Guardar</button>
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="w-full mt-4 text-zinc-500 font-black uppercase text-[10px]">Cerrar</button>
+                                <div className="flex flex-col gap-3">
+                                    <button type="submit" className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase italic hover:bg-green-500 transition-all active:scale-95">Guardar</button>
+                                    <button type="button" onClick={() => setIsModalOpen(false)} className="w-full py-3 text-zinc-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Cancelar</button>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -298,6 +380,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                 .react-calendar-heatmap .color-scale-3 { fill: #6366f1; }
                 .react-calendar-heatmap .color-scale-4 { fill: #818cf8; }
                 .react-calendar-heatmap rect { rx: 2px; cursor: pointer; transition: all 0.2s; }
+                .react-calendar-heatmap rect:hover { filter: brightness(1.3); stroke: #fff; stroke-width: 1px; }
             `}</style>
         </div>
     );
