@@ -1,13 +1,17 @@
-import { Controller, Get, Post, Param, Body, Delete, Patch } from '@nestjs/common';
+// backend/src/habits.controller.ts
+import { Controller, Get, Post, Param, Body, Delete, Patch, UseGuards, Request } from '@nestjs/common';
 import { HabitsService } from './habits.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Controller('habits')
+@UseGuards(JwtAuthGuard) // <--- Todos los endpoints de aquí abajo ahora son privados
 export class HabitsController {
     constructor(private readonly habitsService: HabitsService) { }
 
     @Get()
-    findAll() {
-        return this.habitsService.findAll();
+    findAll(@Request() req: any) {
+        // Obtenemos el userId del token decodificado
+        return this.habitsService.findAll(req.user.sub);
     }
 
     @Get(':id')
@@ -21,8 +25,9 @@ export class HabitsController {
     }
 
     @Post()
-    create(@Body('title') title: string) {
-        return this.habitsService.create(title);
+    create(@Request() req: any, @Body('title') title: string) {
+        // Creamos el hábito vinculado al usuario logueado
+        return this.habitsService.create(req.user.sub, title);
     }
 
     @Post(':id/complete')

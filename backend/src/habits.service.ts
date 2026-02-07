@@ -1,34 +1,49 @@
-import { Injectable } from '@nestjs/common';
+// backend/src/habits.service.ts
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
 export class HabitsService {
     constructor(private prisma: PrismaService) { }
 
-    async findAll() {
+    // Trae solo los hábitos del usuario logueado
+    async findAll(userId: number) {
         return this.prisma.habit.findMany({
-            where: { userId: 1 },
+            where: { userId },
             include: { completions: true },
+            orderBy: { createdAt: 'desc' }
         });
     }
 
-    async findOne(id: number) {
-        return this.prisma.habit.findUnique({
+    // Busca un hábito y verifica que pertenezca al usuario
+    async findOne(id: number, userId: number) {
+        const habit = await this.prisma.habit.findUnique({
             where: { id },
             include: { completions: true },
         });
+
+        if (!habit) throw new NotFoundException('Unidad no encontrada');
+        if (habit.userId !== userId) throw new ForbiddenException('No tienes permiso para ver esta unidad');
+
+        return habit;
     }
 
-    async update(id: number, data: { title?: string; description?: string }) {
+    // Permite actualizar título, descripción y la frecuencia de la racha
+    async update(id: number, data: { title?: string; description?: string; frequency?: number[] }) {
         return this.prisma.habit.update({
             where: { id },
             data,
         });
     }
 
-    async create(title: string) {
+    // Crea el hábito vinculado al ID del usuario que lo registra
+    async create(userId: number, title: string) {
         return this.prisma.habit.create({
-            data: { title, userId: 1 },
+            data: {
+                title,
+                userId,
+                frequency: [1, 2, 3, 4, 5] // Por defecto Lunes a Viernes, o el que prefieras
+            },
         });
     }
 
