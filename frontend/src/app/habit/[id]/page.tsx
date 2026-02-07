@@ -1,8 +1,8 @@
 "use client";
 import 'react-calendar-heatmap/dist/styles.css';
 import { useEffect, useState, use } from 'react';
-import axios from 'axios';
-import { Flame, CheckCircle, ArrowLeft, Undo2, Clock, Calendar as CalIcon, Edit3, Save, Trash2, X, Award, Medal, Trophy, Settings2 } from 'lucide-react';
+import api from '@/api/axios';
+import { Flame, CheckCircle, Undo2, Clock, Calendar as CalIcon, Edit3, Save, Trash2, X, Award, Medal, Trophy, Settings2, LayoutDashboard } from 'lucide-react';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -26,14 +26,15 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
 
     const fetchHabit = async () => {
         try {
-            const res = await axios.get(`http://127.0.0.1:3000/habits/${id}`);
+            const res = await api.get(`/habits/${id}`);
             setHabit(res.data);
             setDesc(res.data.description || "");
             setTitle(res.data.title || "");
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+        }
     };
 
-    // --- ALGORITMO DE RACHA FLEXIBLE ---
     const calculateFlexibleStreak = (completions: any[], frequency: number[]) => {
         if (!completions || completions.length === 0 || !frequency) return 0;
         const activityDates = new Set(completions.map(c => new Date(c.date).toISOString().split('T')[0]));
@@ -59,14 +60,14 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
         let newFreq = [...(habit.frequency || [])];
         newFreq = newFreq.includes(dayIndex) ? newFreq.filter(d => d !== dayIndex) : [...newFreq, dayIndex];
         try {
-            await axios.patch(`http://127.0.0.1:3000/habits/${id}`, { frequency: newFreq });
+            await api.patch(`/habits/${id}`, { frequency: newFreq });
             fetchHabit();
         } catch (err) { alert("Error al guardar frecuencia"); }
     };
 
     const handleUpdate = async (fields: { title?: string; description?: string }) => {
         try {
-            await axios.patch(`http://127.0.0.1:3000/habits/${id}`, fields);
+            await api.patch(`/habits/${id}`, fields);
             setIsEditingDesc(false);
             setIsEditingTitle(false);
             fetchHabit();
@@ -76,7 +77,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
     const handleDelete = async () => {
         if (!confirm("¿ESTÁS SEGURO? Se perderá toda la Stamina.")) return;
         try {
-            await axios.delete(`http://127.0.0.1:3000/habits/${id}`);
+            await api.delete(`/habits/${id}`);
             router.push('/');
         } catch (err) { alert("Error al eliminar"); }
     };
@@ -86,7 +87,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
         const mins = Number(sessionMins);
         if (!mins || mins <= 0) return;
         try {
-            await axios.post(`http://127.0.0.1:3000/habits/${id}/complete`, { minutes: mins });
+            await api.post(`/habits/${id}/complete`, { minutes: mins });
             setSessionMins("");
             setIsModalOpen(false);
             fetchHabit();
@@ -96,14 +97,14 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
     const handleUndo = async () => {
         if (!confirm("¿Deshacer último?")) return;
         try {
-            await axios.delete(`http://127.0.0.1:3000/habits/${id}/undo`);
+            await api.delete(`/habits/${id}/undo`);
             fetchHabit();
         } catch (err) { console.error(err); }
     };
 
     useEffect(() => { fetchHabit(); }, [id]);
 
-    if (!habit) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500 font-bold uppercase tracking-widest text-sm italic">Sincronizando Stamina...</div>;
+    if (!habit) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500 font-bold uppercase tracking-widest text-sm italic animate-pulse">Sincronizando Stamina...</div>;
 
     const totalMins = habit.completions.reduce((acc: number, curr: any) => acc + (curr.minutes || 0), 0);
     const totalHours = totalMins / 60;
@@ -122,17 +123,14 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
 
     return (
         <div className="min-h-screen p-6 md:p-12 max-w-4xl mx-auto bg-black text-white font-sans">
-            {/* BARRA DE NAVEGACIÓN SUPERIOR */}
-            <div className="flex justify-between items-center mb-8">
-                <Link href="/" className="flex items-center gap-2 text-zinc-500 hover:text-white transition group text-[10px] font-black uppercase tracking-[0.2em]">
-                    <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                    Dashboard
+            {/* HEADER UNIFICADO */}
+            <div className="flex justify-between items-center mb-12 border-b border-zinc-800 pb-8">
+                <Link href="/" className="flex items-center gap-2 text-zinc-500 hover:text-white transition group text-[10px] font-black uppercase tracking-[0.2em] bg-zinc-900/50 px-6 py-3 rounded-2xl border border-zinc-800">
+                    <LayoutDashboard size={16} /> Dashboard
                 </Link>
 
-                {/* BOTÓN IR A AGENDA */}
-                <Link href="/agenda" className="flex items-center gap-2 text-indigo-500 hover:text-indigo-400 transition group text-[10px] font-black uppercase tracking-[0.2em] bg-indigo-500/5 px-4 py-2 rounded-full border border-indigo-500/20">
-                    <CalIcon size={14} />
-                    Agenda Semanal
+                <Link href="/agenda" className="flex items-center gap-2 text-indigo-500 hover:text-indigo-400 transition group text-[10px] font-black uppercase tracking-[0.2em] bg-indigo-500/5 px-6 py-3 rounded-2xl border border-indigo-500/20">
+                    <CalIcon size={16} /> Agenda Semanal
                 </Link>
             </div>
 
@@ -142,7 +140,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                         {isEditingTitle ? (
                             <div className="flex gap-2 items-center mb-2">
                                 <input
-                                    className="bg-zinc-800 border border-indigo-500 rounded-xl px-4 py-2 text-2xl font-black italic uppercase outline-none w-full max-w-md"
+                                    className="bg-zinc-800 border border-indigo-500 rounded-xl px-4 py-2 text-2xl font-black italic uppercase outline-none w-full max-w-md text-white"
                                     value={title} onChange={(e) => setTitle(e.target.value)} autoFocus
                                 />
                                 <button onClick={() => handleUpdate({ title })} className="text-green-500 p-2 hover:bg-green-500/10 rounded-lg transition"><Save size={24} /></button>
@@ -184,9 +182,9 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                 </div>
 
                 {/* CONFIGURACIÓN DE FRECUENCIA */}
-                <div className="mb-8 p-4 bg-black/20 rounded-2xl border border-zinc-800/50">
+                <div className="mb-8 p-4 bg-black/20 rounded-2xl border border-zinc-800/50 mt-6">
                     <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3">
-                        <Settings2 size={12} /> Días de Entrenamiento (Configura tu Racha)
+                        <Settings2 size={12} /> Días de Entrenamiento
                     </div>
                     <div className="flex gap-2">
                         {dayNames.map((name, index) => (
@@ -204,6 +202,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                     </div>
                 </div>
 
+                {/* TROFEOS Y STATS */}
                 <div className="flex flex-wrap items-center justify-between gap-6 mb-8 border-t border-zinc-800 pt-6">
                     <div className="flex gap-4">
                         <div className="flex items-center gap-2 text-orange-500 bg-orange-500/5 px-4 py-1.5 rounded-full text-[11px] font-black uppercase border border-orange-500/10">
@@ -227,7 +226,7 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                     </div>
                 </div>
 
-                {/* HEATMAP SECCIÓN */}
+                {/* HEATMAP */}
                 <div className="bg-black/40 p-8 rounded-[24px] border border-zinc-800/50 mb-8 overflow-hidden">
                     <div className="flex gap-6 mb-6">
                         <div className="flex flex-col justify-between text-[10px] text-zinc-600 font-black uppercase py-2 h-[100px]">
@@ -255,49 +254,31 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                             />
                         </div>
                     </div>
-
-                    <div className="flex items-center justify-end gap-3 border-t border-zinc-800/50 pt-4">
-                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mr-2">Intensidad:</span>
-                        <div className="flex items-center gap-1.5 group">
-                            <div className="w-3 h-3 rounded-sm bg-[#18181b] border border-white/5" title="0 min"></div>
-                            <div className="w-3 h-3 rounded-sm bg-[#312e81]" title="1 - 30 min"></div>
-                            <div className="w-3 h-3 rounded-sm bg-[#4338ca]" title="31 - 60 min"></div>
-                            <div className="w-3 h-3 rounded-sm bg-[#6366f1]" title="61 - 120 min"></div>
-                            <div className="w-3 h-3 rounded-sm bg-[#818cf8]" title="+120 min"></div>
-                        </div>
-                    </div>
                 </div>
 
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="w-full bg-indigo-600 text-white py-5 rounded-2xl font-black uppercase italic tracking-tighter text-xl flex items-center justify-center gap-3 transition-all hover:bg-green-500 active:scale-95 cursor-pointer shadow-xl shadow-indigo-500/10"
                 >
-                    <CheckCircle size={24} />
-                    Registrar Sesión
+                    <CheckCircle size={24} /> Registrar Sesión
                 </button>
             </div>
 
-            {/* MODAL PERSONALIZADO */}
+            {/* MODAL */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
                     <div className="bg-zinc-900 border border-zinc-800 p-8 md:p-10 rounded-[40px] w-full max-w-sm shadow-2xl relative overflow-hidden">
                         <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/20 blur-[80px]"></div>
-                        <div className="relative z-10">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-black italic uppercase">Cargar <span className="text-indigo-500">Sesión</span></h2>
-                                <button onClick={() => setIsModalOpen(false)} className="text-zinc-500 hover:text-red-500 transition"><X size={20} /></button>
-                            </div>
+                        <div className="relative z-10 text-center">
+                            <h2 className="text-xl font-black italic uppercase mb-6">Cargar <span className="text-indigo-500">Sesión</span></h2>
                             <form onSubmit={handleRegisterSession}>
-                                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-3 text-center">Minutos de Producción</p>
                                 <input
                                     autoFocus type="number" placeholder="00"
                                     className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl p-5 mb-6 outline-none focus:border-indigo-500 text-3xl font-black text-center text-white"
                                     value={sessionMins} onChange={(e) => setSessionMins(e.target.value)}
                                 />
-                                <div className="flex flex-col gap-3">
-                                    <button type="submit" className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase italic hover:bg-indigo-500 hover:text-white transition-all active:scale-95">Guardar Entrenamiento</button>
-                                    <button type="button" onClick={() => setIsModalOpen(false)} className="w-full py-3 text-red-500/60 text-[10px] font-black uppercase tracking-widest hover:text-red-500 hover:bg-red-500/5 rounded-xl transition-all">Cancelar Registro</button>
-                                </div>
+                                <button type="submit" className="w-full bg-white text-black py-4 rounded-2xl font-black uppercase italic hover:bg-indigo-500 hover:text-white transition-all">Guardar</button>
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="w-full mt-4 text-zinc-500 font-black uppercase text-[10px]">Cerrar</button>
                             </form>
                         </div>
                     </div>
@@ -317,7 +298,6 @@ export default function HabitDetail({ params }: { params: Promise<{ id: string }
                 .react-calendar-heatmap .color-scale-3 { fill: #6366f1; }
                 .react-calendar-heatmap .color-scale-4 { fill: #818cf8; }
                 .react-calendar-heatmap rect { rx: 2px; cursor: pointer; transition: all 0.2s; }
-                .react-calendar-heatmap rect:hover { filter: brightness(1.3); stroke: #fff; stroke-width: 1px; }
             `}</style>
         </div>
     );
