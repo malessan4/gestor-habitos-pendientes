@@ -57,17 +57,26 @@ export default function Dashboard() {
     }
   };
 
+  // HELPER: Obtener fecha local YYYY-MM-DD para evitar desfases UTC
+  const getLocalDateString = (dateInput: string | Date) => {
+    const d = new Date(dateInput);
+    const offset = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+  };
+
   const calculateFlexibleStreak = (completions: any[], frequency: number[]) => {
     if (!completions || completions.length === 0 || !frequency) return 0;
-    const activityDates = new Set(completions.map(c => new Date(c.date).toISOString().split('T')[0]));
+
+    const activityDates = new Set(completions.map(c => getLocalDateString(c.date)));
     let streak = 0;
     let checkDate = new Date();
-    const todayStr = checkDate.toISOString().split('T')[0];
+    const todayStr = getLocalDateString(checkDate);
+
     if (frequency.includes(checkDate.getDay()) && !activityDates.has(todayStr)) {
       checkDate.setDate(checkDate.getDate() - 1);
     }
     for (let i = 0; i < 365; i++) {
-      const dateStr = checkDate.toISOString().split('T')[0];
+      const dateStr = getLocalDateString(checkDate);
       if (frequency.includes(checkDate.getDay())) {
         if (activityDates.has(dateStr)) streak++;
         else if (dateStr !== todayStr) break;
@@ -81,15 +90,14 @@ export default function Dashboard() {
   const todayHabits = habits.filter((h: any) => h.frequency?.includes(todayIndex));
 
   const isDoneToday = (completions: any[]) => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    return completions.some(c => new Date(c.date).toISOString().split('T')[0] === todayStr);
+    const todayStr = getLocalDateString(new Date());
+    return completions.some(c => getLocalDateString(c.date) === todayStr);
   };
 
   const totalMinutes = habits.reduce((acc, h: any) =>
     acc + h.completions.reduce((sum: number, c: any) => sum + (c.minutes || 0), 0), 0
   );
 
-  // Lógica para encontrar el hábito con más horas
   const topHabit = habits.length > 0
     ? [...habits].sort((a: any, b: any) => {
       const sumA = a.completions.reduce((s: number, c: any) => s + (c.minutes || 0), 0);
@@ -102,6 +110,7 @@ export default function Dashboard() {
     ? topHabit.completions.reduce((s: number, c: any) => s + (c.minutes || 0), 0)
     : 0;
 
+  // Lógica de gráfico corregida: suma de Stamina total por unidad
   const chartData = habits.map((h: any) => ({
     name: h.title,
     minutos: h.completions.reduce((sum: number, c: any) => sum + (c.minutes || 0), 0)
@@ -157,24 +166,18 @@ export default function Dashboard() {
           <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Producción Total</p>
           <h3 className="text-3xl font-black">{Math.floor(totalMinutes / 60)}h {totalMinutes % 60}m</h3>
         </div>
-
         <div className="bg-zinc-900/50 p-8 rounded-[32px] border border-zinc-800">
           <TrendingUp className="text-orange-500 mb-4" />
           <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Unidades Activas</p>
           <h3 className="text-3xl font-black">{habits.length}</h3>
         </div>
-
         <div className="bg-zinc-900/50 p-8 rounded-[32px] border border-zinc-800 border-l-indigo-500/50">
           <Trophy className="text-indigo-500 mb-4" />
           <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Máxima Stamina</p>
           {topHabit ? (
             <>
-              <h3 className="text-2xl font-black truncate text-white italic uppercase tracking-tighter">
-                {topHabit.title}
-              </h3>
-              <p className="text-indigo-500 font-bold text-xs mt-1">
-                {Math.floor(topHabitTime / 60)}h {topHabitTime % 60}m dedicados
-              </p>
+              <h3 className="text-2xl font-black truncate text-white italic uppercase tracking-tighter">{topHabit.title}</h3>
+              <p className="text-indigo-500 font-bold text-xs mt-1">{Math.floor(topHabitTime / 60)}h {topHabitTime % 60}m dedicados</p>
             </>
           ) : (
             <h3 className="text-2xl font-black text-zinc-700 italic">Sin Datos</h3>
@@ -184,7 +187,7 @@ export default function Dashboard() {
 
       {/* Gráfico */}
       <div className="bg-zinc-900/30 p-8 rounded-[40px] border border-zinc-800 mb-12">
-        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-8 flex items-center gap-2"><PieIcon size={14} /> Rendimiento (Minutos)</h3>
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-8 flex items-center gap-2"><PieIcon size={14} /> Rendimiento (Minutos Totales)</h3>
         <div className="w-full h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
@@ -198,7 +201,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Grid de Unidades */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {habits.map((habit: any) => {
           const streak = calculateFlexibleStreak(habit.completions, habit.frequency);
@@ -222,7 +224,6 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Modal Nueva Unidad */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-900 border border-zinc-800 p-10 rounded-[40px] w-full max-w-md relative overflow-hidden shadow-2xl">
